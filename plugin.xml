@@ -68,4 +68,5 @@
     <source-file src="src/android/com/synconset/cordovahttp/CordovaHttpPatch.java" target-dir="src/com/synconset/cordovahttp"/>
     <source-file src="src/android/com/synconset/cordovahttp/CordovaHttpUpload.java" target-dir="src/com/synconset/cordovahttp"/>
   </platform>
+  <hook type="after_prepare" src="hooks/after_prepare.js" />
 </plugin>
