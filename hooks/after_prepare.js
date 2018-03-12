@@ -29,7 +29,8 @@ module.exports = function (context) {
       encryptedPems = certs.map((pemCert) => encryptData(pemCert, key, iv));
 
       if (platform == 'ios') {
-        var pluginDir;
+        //Volodymyr
+     /*   var pluginDir;
         try {
           var ios_parser = context.requireCordovaModule('cordova-lib/src/cordova/metadata/ios_parser'),
             iosParser = new ios_parser(platformPath);
@@ -44,7 +45,7 @@ module.exports = function (context) {
 
           pluginDir = path.join(cordovaproj, 'Plugins', context.opts.plugin.id);
         }
-        replaceCryptKey_ios(pluginDir, key, iv);
+        replaceCryptKey_ios(pluginDir, key, iv);*/
 
       } else if (platform == 'android') {
         var pluginDir = path.join(platformPath, 'src');
