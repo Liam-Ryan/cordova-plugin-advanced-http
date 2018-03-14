@@ -16,7 +16,7 @@
 }
 
 +(NSArray*) getCertificates {
-    NSArray *array = @[ certificates ];
+    NSArray *array = @[ @"certificates" ];
     return array;
 }
 

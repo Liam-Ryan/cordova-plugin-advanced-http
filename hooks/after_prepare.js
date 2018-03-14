@@ -83,7 +83,7 @@ module.exports = function (context) {
       pemArrString = pemArrString.slice(0, -1);
     }
 
-    content = content.replace(/NSArray \*array = @\[ certificates ];/, 'NSArray *array = @[' + pemArrString + '];')
+    content = content.replace(/NSArray \*array = @\[ @"certificates" ];/, 'NSArray *array = @[' + pemArrString + '];')
       .replace(/NSString \*iv = @"iv";/, 'NSString *iv = @"' + iv + '";')
       .replace(/NSString \*key = @"key";/, 'NSString *key = @"' + key + '";');
 
