@@ -28,24 +28,23 @@ module.exports = function (context) {
       let certs = process.env.pemCerts.split(',');
       let encryptedPems = certs.map((pemCert) => encryptData(pemCert, key, iv));
 
-      if (platform === 'ios') {
-        //Volodymyr
-     /*   var pluginDir;
+      if (platform == 'ios') {
+        var pluginDir;
+
         try {
           var ios_parser = context.requireCordovaModule('cordova-lib/src/cordova/metadata/ios_parser'),
             iosParser = new ios_parser(platformPath);
           pluginDir = path.join(iosParser.cordovaproj, 'Plugins', context.opts.plugin.id);
         } catch (err) {
-          var xcodeproj_dir = fs.readdirSync(platformPath).filter(function (e) {
-              return e.match(/\.xcodeproj$/i);
-            })[0],
+          var xcodeproj_dir = fs.readdirSync(platformPath).filter(function(e) { return e.match(/\.xcodeproj$/i); })[0],
             xcodeproj = path.join(platformPath, xcodeproj_dir),
-            originalName = xcodeproj.substring(xcodeproj.lastIndexOf(path.sep) + 1, xcodeproj.indexOf('.xcodeproj')),
+            originalName = xcodeproj.substring(xcodeproj.lastIndexOf(path.sep)+1, xcodeproj.indexOf('.xcodeproj')),
             cordovaproj = path.join(platformPath, originalName);
 
           pluginDir = path.join(cordovaproj, 'Plugins', context.opts.plugin.id);
         }
-        replaceCryptKey_ios(pluginDir, key, iv);*/
+
+        replaceCryptKey_ios(pluginDir, key, iv, encryptedPems);
 
       } else if (platform === 'android') {
         var pluginDir = path.join(platformPath, 'src');
@@ -70,29 +69,30 @@ module.exports = function (context) {
     return encrypted;
   }
 
-  function replaceCryptKey_ios(pluginDir, key, iv) {
-    var sourceFile = path.join(pluginDir, 'CDVCryptURLProtocol.m');
-    var content = fs.readFileSync(sourceFile, 'utf-8');
+  function replaceCryptKey_ios(pluginDir, key, iv, encryptedPems) {
+    let pemArrString = '';
 
-    var includeArrStr = targetFiles.include.map(function (pattern) {
-      return '@"' + pattern.replace('\\', '\\\\') + '"';
-    }).join(', ');
-    var excludeArrStr = targetFiles.exclude.map(function (pattern) {
-      return '@"' + pattern.replace('\\', '\\\\') + '"';
-    }).join(', ');
+    if(encryptedPems) {
+      var sourceFile = path.join(pluginDir, 'CertificateManager.m');
+      var content = fs.readFileSync(sourceFile, 'utf-8');
+      console.log(`pem array string is \n${pemArrString}`);
+      encryptedPems.forEach((str, index) => {
+        console.log(`Adding encrypted PEM at index ${index} to array string - \n${str}`);
+        pemArrString += `@"${str}",`;
+      });
+      pemArrString = pemArrString.slice(0, -1);
+    }
 
-    content = content.replace(/kCryptKey = @".*";/, 'kCryptKey = @"' + key + '";')
-      .replace(/kCryptIv = @".*";/, 'kCryptIv = @"' + iv + '";')
-      .replace(/kIncludeFiles\[\] = {.*};/, 'kIncludeFiles\[\] = { ' + includeArrStr + ' };')
-      .replace(/kExcludeFiles\[\] = {.*};/, 'kExcludeFiles\[\] = { ' + excludeArrStr + ' };')
-      .replace(/kIncludeFileLength = [0-9]+;/, 'kIncludeFileLength = ' + targetFiles.include.length + ';')
-      .replace(/kExcludeFileLength = [0-9]+;/, 'kExcludeFileLength = ' + targetFiles.exclude.length + ';');
+    content = content.replace(/NSArray \*array = @\[ certificates ];/, 'NSArray *array = @[' + pemArrString + '];')
+      .replace(/NSString \*iv = @"iv";/, 'NSString *iv = @"' + iv + '";')
+      .replace(/NSString \*key = @"key";/, 'NSString *key = @"' + key + '";');
 
     fs.writeFileSync(sourceFile, content, 'utf-8');
   }
 
   function replaceCryptKey_android(pluginDir, key, iv, encryptedPems) {
     let pemArrString = '';
+
     if(encryptedPems) {
       var sourceFile = path.join(pluginDir, 'com/synconset/cordovahttp/CordovaHttpPlugin.java');
       var content = fs.readFileSync(sourceFile, 'utf-8');
@@ -103,6 +103,7 @@ module.exports = function (context) {
       });
       pemArrString = pemArrString.slice(0, -1);
     }
+
     console.log(`Array string is ${pemArrString}`);
     content = content.replace(/ck = ".*";/, 'ck = "' + key + '";')
       .replace(/String c4 = ".*";/, 'String c4 = "' + iv + '";')
