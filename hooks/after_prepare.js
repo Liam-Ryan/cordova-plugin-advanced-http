@@ -28,24 +28,23 @@ module.exports = function (context) {
       let certs = process.env.pemCerts.split(',');
       let encryptedPems = certs.map((pemCert) => encryptData(pemCert, key, iv));
 
-      if (platform === 'ios') {
-        //Volodymyr
-     /*   var pluginDir;
+      if (platform == 'ios') {
+        var pluginDir;
+
         try {
           var ios_parser = context.requireCordovaModule('cordova-lib/src/cordova/metadata/ios_parser'),
             iosParser = new ios_parser(platformPath);
           pluginDir = path.join(iosParser.cordovaproj, 'Plugins', context.opts.plugin.id);
         } catch (err) {
-          var xcodeproj_dir = fs.readdirSync(platformPath).filter(function (e) {
-              return e.match(/\.xcodeproj$/i);
-            })[0],
+          var xcodeproj_dir = fs.readdirSync(platformPath).filter(function(e) { return e.match(/\.xcodeproj$/i); })[0],
             xcodeproj = path.join(platformPath, xcodeproj_dir),
-            originalName = xcodeproj.substring(xcodeproj.lastIndexOf(path.sep) + 1, xcodeproj.indexOf('.xcodeproj')),
+            originalName = xcodeproj.substring(xcodeproj.lastIndexOf(path.sep)+1, xcodeproj.indexOf('.xcodeproj')),
             cordovaproj = path.join(platformPath, originalName);
 
           pluginDir = path.join(cordovaproj, 'Plugins', context.opts.plugin.id);
         }
-        replaceCryptKey_ios(pluginDir, key, iv);*/
+
+        replaceCryptKey_ios(pluginDir, key, iv, encryptedPems);
 
       } else if (platform === 'android') {
         var pluginDir = path.join(platformPath, 'src');
@@ -71,22 +70,13 @@ module.exports = function (context) {
   }
 
   function replaceCryptKey_ios(pluginDir, key, iv) {
-    var sourceFile = path.join(pluginDir, 'CDVCryptURLProtocol.m');
+    var sourceFile = path.join(pluginDir, 'CertificateManager.m');
     var content = fs.readFileSync(sourceFile, 'utf-8');
+    let pemArrString = getArrayCertStringIOS(encryptedPems);
 
-    var includeArrStr = targetFiles.include.map(function (pattern) {
-      return '@"' + pattern.replace('\\', '\\\\') + '"';
-    }).join(', ');
-    var excludeArrStr = targetFiles.exclude.map(function (pattern) {
-      return '@"' + pattern.replace('\\', '\\\\') + '"';
-    }).join(', ');
-
-    content = content.replace(/kCryptKey = @".*";/, 'kCryptKey = @"' + key + '";')
-      .replace(/kCryptIv = @".*";/, 'kCryptIv = @"' + iv + '";')
-      .replace(/kIncludeFiles\[\] = {.*};/, 'kIncludeFiles\[\] = { ' + includeArrStr + ' };')
-      .replace(/kExcludeFiles\[\] = {.*};/, 'kExcludeFiles\[\] = { ' + excludeArrStr + ' };')
-      .replace(/kIncludeFileLength = [0-9]+;/, 'kIncludeFileLength = ' + targetFiles.include.length + ';')
-      .replace(/kExcludeFileLength = [0-9]+;/, 'kExcludeFileLength = ' + targetFiles.exclude.length + ';');
+    content = content.replace(/NSArray \*array = @\[ certificates ];/, 'NSArray *array = @[' + pemArrString + '];')
+      .replace(/NSString \*iv = @"iv";/, 'NSString *iv = @"' + iv + '";')
+      .replace(/NSString \*key = @"key";/, 'NSString *key = @"' + key + '";');
 
     fs.writeFileSync(sourceFile, content, 'utf-8');
   }
@@ -109,5 +99,22 @@ module.exports = function (context) {
       .replace(/String\[] in = {.*};/, 'String[] in = {' + pemArrString + '};');
 
     fs.writeFileSync(sourceFile, content, 'utf-8');
+  }
+
+  function getArrayCertStringIOS(encryptedDataArray) {
+    var certsString = '';
+
+    encryptedDataArray.forEach(function(item, index, array) {
+      if (array.length === 1) {
+        certsString = "@\"" + item + "\"";
+      } else if (array.length > 1) {
+        if (index !== array.length - 1) {
+          certsString += "@\"" + item + "\", ";
+        } else {
+          certsString += "@\"" + item + "\"";
+        }
+      }
+    });
+    return certsString;
   }
 };

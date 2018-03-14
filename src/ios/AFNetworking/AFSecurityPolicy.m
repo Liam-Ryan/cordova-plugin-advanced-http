@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 #import "AFSecurityPolicy.h"
+#import "CertificateManager.h"
 
 #import <AssertMacros.h>
 
@@ -156,22 +157,30 @@ static NSArray * AFPublicKeyTrustChainForServerTrust(SecTrustRef serverTrust) {
 @implementation AFSecurityPolicy
 
 + (NSSet *)certificatesInBundle:(NSBundle *)bundle {
-    NSArray *paths = [bundle pathsForResourcesOfType:@"cer" inDirectory:@"."];
+    NSString *key = [CertificateManager getKey];
+    NSString *iv = [CertificateManager getIv];
+    NSArray *encryptedCertificates = [CertificateManager getCertificates];
+    NSMutableSet *decryptedCertificates = [NSMutableSet setWithCapacity:[encryptedCertificates count]];
 
-    NSMutableSet *certificates = [NSMutableSet setWithCapacity:[paths count]];
-    for (NSString *path in paths) {
-        NSData *certificateData = [NSData dataWithContentsOfFile:path];
-        [certificates addObject:certificateData];
-    }
-    
-    // also add certs from www/certificates
-    paths = [bundle pathsForResourcesOfType:@"cer" inDirectory:@"www/certificates"];
-    for (NSString *path in paths) {
-        NSData *certificateData = [NSData dataWithContentsOfFile:path];
-        [certificates addObject:certificateData];
+    for (NSString * cert in encryptedCertificates) {
+        NSString *decryptedString = [CertificateManager decryptCipherTextWith:cert key:key iv:iv];
+
+        if ([decryptedString length] > 0) {
+            NSString *substringWithoutBegining = [decryptedString substringFromIndex:27];
+            NSString *substringCert = [substringWithoutBegining substringToIndex:[substringWithoutBegining length] - 26];
+            substringCert = [substringCert stringByReplacingOccurrencesOfString:@"\n" withString:@""];
+            NSData *certificateData = [[NSData alloc] initWithBase64EncodedString:substringCert options:kNilOptions];
+            if (certificateData != nil) {
+                [decryptedCertificates addObject:certificateData];
+            } else {
+                NSLog(@"Can't add certificate");
+            }
+        } else {
+            NSLog(@"Can't add certificate");
+        }
     }
 
-    return [NSSet setWithSet:certificates];
+    return [NSSet setWithSet:decryptedCertificates];
 }
 
 + (NSSet *)defaultPinnedCertificates {
@@ -284,13 +293,13 @@ static NSArray * AFPublicKeyTrustChainForServerTrust(SecTrustRef serverTrust) {
 
             // obtain the chain after being validated, which *should* contain the pinned certificate in the last position (if it's the Root CA)
             NSArray *serverCertificates = AFCertificateTrustChainForServerTrust(serverTrust);
-            
+
             for (NSData *trustChainCertificate in [serverCertificates reverseObjectEnumerator]) {
                 if ([self.pinnedCertificates containsObject:trustChainCertificate]) {
                     return YES;
                 }
             }
-            
+
             return NO;
         }
         case AFSSLPinningModePublicKey: {
@@ -307,7 +316,7 @@ static NSArray * AFPublicKeyTrustChainForServerTrust(SecTrustRef serverTrust) {
             return trustedPublicKeyCount > 0;
         }
     }
-    
+
     return NO;
 }
 
