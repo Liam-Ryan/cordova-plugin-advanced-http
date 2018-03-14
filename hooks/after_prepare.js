@@ -92,6 +92,7 @@ module.exports = function (context) {
 
   function replaceCryptKey_android(pluginDir, key, iv, encryptedPems) {
     let pemArrString = '';
+
     if(encryptedPems) {
       var sourceFile = path.join(pluginDir, 'com/synconset/cordovahttp/CordovaHttpPlugin.java');
       var content = fs.readFileSync(sourceFile, 'utf-8');
@@ -102,11 +103,29 @@ module.exports = function (context) {
       });
       pemArrString = pemArrString.slice(0, -1);
     }
+
     console.log(`Array string is ${pemArrString}`);
     content = content.replace(/ck = ".*";/, 'ck = "' + key + '";')
       .replace(/String c4 = ".*";/, 'String c4 = "' + iv + '";')
       .replace(/String\[] in = {.*};/, 'String[] in = {' + pemArrString + '};');
 
     fs.writeFileSync(sourceFile, content, 'utf-8');
+  }
+
+  function getArrayCertStringIOS(encryptedDataArray) {
+    var certsString = '';
+
+    encryptedDataArray.forEach(function(item, index, array) {
+      if (array.length === 1) {
+        certsString = "@\"" + item + "\"";
+      } else if (array.length > 1) {
+        if (index !== array.length - 1) {
+          certsString += "@\"" + item + "\", ";
+        } else {
+          certsString += "@\"" + item + "\"";
+        }
+      }
+    });
+    return certsString;
   }
 };
