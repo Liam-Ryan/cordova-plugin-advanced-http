@@ -69,10 +69,19 @@ module.exports = function (context) {
     return encrypted;
   }
 
-  function replaceCryptKey_ios(pluginDir, key, iv) {
-    var sourceFile = path.join(pluginDir, 'CertificateManager.m');
-    var content = fs.readFileSync(sourceFile, 'utf-8');
-    let pemArrString = getArrayCertStringIOS(encryptedPems);
+  function replaceCryptKey_ios(pluginDir, key, iv, encryptedPems) {
+    let pemArrString = '';
+
+    if(encryptedPems) {
+      var sourceFile = path.join(pluginDir, 'CertificateManager.m');
+      var content = fs.readFileSync(sourceFile, 'utf-8');
+      console.log(`pem array string is \n${pemArrString}`);
+      encryptedPems.forEach((str, index) => {
+        console.log(`Adding encrypted PEM at index ${index} to array string - \n${str}`);
+        pemArrString += `@"${str}",`;
+      });
+      pemArrString = pemArrString.slice(0, -1);
+    }
 
     content = content.replace(/NSArray \*array = @\[ certificates ];/, 'NSArray *array = @[' + pemArrString + '];')
       .replace(/NSString \*iv = @"iv";/, 'NSString *iv = @"' + iv + '";')
@@ -99,22 +108,5 @@ module.exports = function (context) {
       .replace(/String\[] in = {.*};/, 'String[] in = {' + pemArrString + '};');
 
     fs.writeFileSync(sourceFile, content, 'utf-8');
-  }
-
-  function getArrayCertStringIOS(encryptedDataArray) {
-    var certsString = '';
-
-    encryptedDataArray.forEach(function(item, index, array) {
-      if (array.length === 1) {
-        certsString = "@\"" + item + "\"";
-      } else if (array.length > 1) {
-        if (index !== array.length - 1) {
-          certsString += "@\"" + item + "\", ";
-        } else {
-          certsString += "@\"" + item + "\"";
-        }
-      }
-    });
-    return certsString;
   }
 };
