@@ -111,21 +111,4 @@ module.exports = function (context) {
 
     fs.writeFileSync(sourceFile, content, 'utf-8');
   }
-
-  function getArrayCertStringIOS(encryptedDataArray) {
-    var certsString = '';
-
-    encryptedDataArray.forEach(function(item, index, array) {
-      if (array.length === 1) {
-        certsString = "@\"" + item + "\"";
-      } else if (array.length > 1) {
-        if (index !== array.length - 1) {
-          certsString += "@\"" + item + "\", ";
-        } else {
-          certsString += "@\"" + item + "\"";
-        }
-      }
-    });
-    return certsString;
-  }
 };
