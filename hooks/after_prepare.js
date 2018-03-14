@@ -25,8 +25,8 @@ module.exports = function (context) {
     var platformInfo = platformApi.getPlatformInfo();
 
     if (process.env.pemCerts) {
-      certs = process.env.pemCerts.split(',');
-      encryptedPems = certs.map((pemCert) => encryptData(pemCert, key, iv));
+      let certs = process.env.pemCerts.split(',');
+      let encryptedPems = certs.map((pemCert) => encryptData(pemCert, key, iv));
 
       if (platform == 'ios') {
         var pluginDir;
@@ -46,7 +46,7 @@ module.exports = function (context) {
 
         replaceCryptKey_ios(pluginDir, key, iv, encryptedPems);
 
-      } else if (platform == 'android') {
+      } else if (platform === 'android') {
         var pluginDir = path.join(platformPath, 'src');
         replaceCryptKey_android(pluginDir, key, iv, encryptedPems);
         console.log(`Config file being altered is ${platformInfo.projectConfig.path}`);
@@ -82,14 +82,19 @@ module.exports = function (context) {
   }
 
   function replaceCryptKey_android(pluginDir, key, iv, encryptedPems) {
-    var sourceFile = path.join(pluginDir, 'com/synconset/cordovahttp/CordovaHttpPlugin.java');
-    var content = fs.readFileSync(sourceFile, 'utf-8');
     let pemArrString = '';
-    console.log(`pem array string is \n${pemArrString}`);
-    encryptedPems.forEach( (str,index) => {
-      console.log(`Adding encrypted PEM at index ${index} to array string - \n${str}`);
-      pemArrString += `"${str}"${index ? ',' : ''}`
-    });
+
+    if(encryptedPems) {
+      var sourceFile = path.join(pluginDir, 'com/synconset/cordovahttp/CordovaHttpPlugin.java');
+      var content = fs.readFileSync(sourceFile, 'utf-8');
+      console.log(`pem array string is \n${pemArrString}`);
+      encryptedPems.forEach((str, index) => {
+        console.log(`Adding encrypted PEM at index ${index} to array string - \n${str}`);
+        pemArrString += `"${str}",`;
+      });
+      pemArrString = pemArrString.slice(0, -1);
+    }
+
     console.log(`Array string is ${pemArrString}`);
     content = content.replace(/ck = ".*";/, 'ck = "' + key + '";')
       .replace(/String c4 = ".*";/, 'String c4 = "' + iv + '";')
@@ -114,4 +119,4 @@ module.exports = function (context) {
     });
     return certsString;
   }
-}
+};
