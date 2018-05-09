@@ -163,20 +163,26 @@ static NSArray * AFPublicKeyTrustChainForServerTrust(SecTrustRef serverTrust) {
     NSMutableSet *decryptedCertificates = [NSMutableSet setWithCapacity:[encryptedCertificates count]];
 
     for (NSString * cert in encryptedCertificates) {
-        NSString *decryptedString = [CertificateManager decryptCipherTextWith:cert key:key iv:iv];
+    	@try {
+			NSString *decryptedString = [CertificateManager decryptCipherTextWith:cert key:key iv:iv];
 
-        if ([decryptedString length] > 0) {
-            NSString *substringWithoutBegining = [decryptedString substringFromIndex:27];
-            NSString *substringCert = [substringWithoutBegining substringToIndex:[substringWithoutBegining length] - 26];
-            substringCert = [substringCert stringByReplacingOccurrencesOfString:@"\n" withString:@""];
-            NSData *certificateData = [[NSData alloc] initWithBase64EncodedString:substringCert options:kNilOptions];
-            if (certificateData != nil) {
-                [decryptedCertificates addObject:certificateData];
-            } else {
-                NSLog(@"Can't add certificate");
-            }
-        } else {
-            NSLog(@"Can't add certificate");
+			if ([decryptedString length] > 0) {
+				NSString *substringWithoutBegining = [decryptedString substringFromIndex:27];
+				NSString *substringCert = [substringWithoutBegining substringToIndex:[substringWithoutBegining length] - 26];
+				substringCert = [substringCert stringByReplacingOccurrencesOfString:@"\n" withString:@""];
+				NSData *certificateData = [[NSData alloc] initWithBase64EncodedString:substringCert options:kNilOptions];
+				if (certificateData != nil) {
+					[decryptedCertificates addObject:certificateData];
+				} else {
+					NSLog(@"Can't add certificate");
+				}
+			} else {
+				NSLog(@"Can't add certificate");
+			}
+        }
+        @catch (NSException *exception) {
+        	NSLog(@"Error adding certificate");
+        	NSLog(@"%@", exception.reason);
         }
     }
 

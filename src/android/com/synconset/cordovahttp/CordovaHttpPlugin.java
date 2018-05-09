@@ -4,6 +4,7 @@
 package com.synconset.cordovahttp;
 
 import android.util.Base64;
+import android.util.Log;
 import com.github.kevinsawicki.http.HttpRequest;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
@@ -128,13 +129,14 @@ public class CordovaHttpPlugin extends CordovaPlugin {
 
   private void enableSSLPinning( boolean enable ) throws Exception {
     if ( enable ) {
-      try {
         for ( String s : in ) {
-          HttpRequest.addCert( toBytes(s) );
+			try {
+			  HttpRequest.addCert( toBytes(s) );
+			} catch (Exception e ) {
+				Log.d(TAG, "Failed to pin cert\n" + e.getMessage());
+			}
         }
-      } finally {
         CordovaHttp.enableSSLPinning( true );
-      }
     } else {
       CordovaHttp.enableSSLPinning( false );
     }
